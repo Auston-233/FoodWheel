@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>食轮</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Canvas Confetti for Celebration -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=PingFang+SC:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#fff7ed',
+                            100: '#ffedd5',
+                            500: '#f97316',
+                            600: '#ea580c',
+                            700: '#c2410c',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['PingFang SC', 'Microsoft YaHei', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Styles for smoothness and canvas support */
+        body {
+            background-color: #fefce8;
+            background-image: radial-gradient(#fde047 0.75px, transparent 0.75px), radial-gradient(#fde047 0.75px, #fefce8 0.75px);
+            background-size: 30px 30px;
+            background-position: 0 0, 15px 15px;
+        }
+
+        .wheel-shadow {
+            box-shadow: 0 20px 25px -5px rgba(234, 88, 12, 0.2), 0 8px 10px -6px rgba(234, 88, 12, 0.2);
+        }
+
+        /* Custom Scrollbar for list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between font-sans antialiased">
+
+    <!-- Header -->
+    <header class="w-full bg-white/80 backdrop-blur-md border-b border-orange-100 sticky top-0 z-20">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white text-xl shadow-md">
+                    <i class="fa-solid fa-utensils"></i>
+                </div>
+                <h1 class="text-xl font-bold bg-gradient-to-r from-orange-600 to-amber-500 bg-clip-text text-transparent">
+                    食轮
+                </h1>
+            </div>
+            <div class="flex items-center gap-2 text-sm text-slate-500">
+                <span class="hidden sm:inline">选择困难症救星</span>
+                <button id="soundToggle" class="p-2 rounded-full hover:bg-orange-50 text-orange-600 transition" title="开关音效">
+                    <i class="fa-solid fa-volume-high text-lg" id="soundIcon"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="max-w-6xl mx-auto px-4 py-6 w-full flex-1 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        
+        <!-- Left Column: Wheel & Action Area (Lg: 7 cols) -->
+        <section class="lg:col-span-7 flex flex-col items-center justify-center gap-6 bg-white p-6 sm:p-8 rounded-3xl shadow-xl shadow-orange-500/5 border border-orange-100">
+            
+            <!-- Wheel Container -->
+            <div class="relative w-full max-w-[380px] sm:max-w-[420px] aspect-square flex items-center justify-center">
+                <!-- Outer Decorative Ring -->
+                <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-400 via-amber-300 to-yellow-400 p-3 wheel-shadow animate-pulse"></div>
+                <div class="absolute inset-2 rounded-full bg-white"></div>
+
+                <!-- Canvas Component -->
+                <canvas id="wheelCanvas" width="800" height="800" class="relative z-10 w-[calc(100%-16px)] h-[calc(100%-16px)] rounded-full transition-transform duration-100 ease-out"></canvas>
+
+                <!-- Center Pointer / Pin Indicator -->
+                <div class="absolute top-2 left-1/2 -translate-x-1/2 z-20 -mt-2">
+                    <div class="w-8 h-10 bg-gradient-to-b from-red-500 to-rose-600 clip-pointer shadow-md filter drop-shadow-lg flex items-center justify-center">
+                        <i class="fa-solid fa-caret-down text-white text-xl mt-[-8px]"></i>
+                    </div>
+                </div>
+
+                <!-- Center Start Button -->
+                <button id="spinBtn" class="absolute z-20 top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white font-bold text-lg sm:text-xl shadow-lg hover:scale-105 active:scale-95 transition-all duration-200 border-4 border-white flex flex-col items-center justify-center group cursor-pointer">
+                    <span>开始</span>
+                    <span class="text-[10px] font-normal opacity-90 group-hover:underline">GO!</span>
+                </button>
+            </div>
+
+            <!-- Quick Action Hints -->
+            <div class="text-center text-xs sm:text-sm text-slate-400 flex items-center gap-2">
+                <i class="fa-solid fa-circle-info text-orange-400"></i>
+                <span>点击中间按钮开抽，转盘结果全凭天意！</span>
+            </div>
+        </section>
+
+        <!-- Right Column: Food List Management & Templates (Lg: 5 cols) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Food Item Management Card -->
+            <div class="bg-white p-6 rounded-3xl shadow-xl shadow-orange-500/5 border border-orange-100 flex flex-col gap-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h2 class="font-bold text-slate-700 flex items-center gap-2">
+                        <i class="fa-solid fa-list-check text-orange-500"></i>
+                        当前美食列表
+                        <span id="itemCount" class="text-xs bg-orange-100 text-orange-600 px-2 py-0.5 rounded-full font-semibold">0</span>
+                    </h2>
+                    <div class="flex items-center gap-2">
+                        <button id="clearAllBtn" class="text-xs text-slate-400 hover:text-rose-500 transition flex items-center gap-1">
+                            <i class="fa-solid fa-trash-can"></i> 清空
+                        </button>
+                        <button id="resetDefaultBtn" class="text-xs text-slate-400 hover:text-orange-500 transition flex items-center gap-1">
+                            <i class="fa-solid fa-rotate-right"></i> 重置
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Add Single Item Input -->
+                <form id="addItemForm" class="flex gap-2">
+                    <input type="text" id="newItemInput" placeholder="输入你想吃的美食..." class="flex-1 px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:bg-white transition">
+                    <button type="submit" class="px-4 py-2.5 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-medium rounded-xl text-sm transition shadow-sm flex items-center gap-1 shrink-0">
+                        <i class="fa-solid fa-plus"></i> 添加
+                    </button>
+                </form>
+
+                <!-- Food Tag Pills List -->
+                <div id="foodList" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 custom-scrollbar min-h-[80px]">
+                    <!-- Item Tags will be rendered here dynamically -->
+                </div>
+
+                <!-- Batch Import Collapsible section -->
+                <details class="group border border-slate-100 rounded-2xl bg-slate-50/50 overflow-hidden text-sm">
+                    <summary class="px-4 py-3 font-medium text-slate-600 cursor-pointer flex items-center justify-between hover:bg-slate-100/50 transition">
+                        <span class="flex items-center gap-2">
+                            <i class="fa-solid fa-file-import text-orange-500"></i>
+                            批量导入 / 快捷替换
+                        </span>
+                        <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition-transform duration-200"></i>
+                    </summary>
+                    <div class="p-4 border-t border-slate-100 flex flex-col gap-3 bg-white">
+                        <textarea id="batchInput" rows="3" placeholder="输入多个美食，用逗号、空格或换行分隔..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-orange-400"></textarea>
+                        <div class="flex gap-2">
+                            <button id="batchAppendBtn" class="flex-1 py-2 bg-orange-100 hover:bg-orange-200 text-orange-700 font-medium rounded-lg text-xs transition">追加到列表</button>
+                            <button id="batchReplaceBtn" class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-xs transition">覆盖当前列表</button>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Preset Templates Card -->
+            <div class="bg-white p-6 rounded-3xl shadow-xl shadow-orange-500/5 border border-orange-100 flex flex-col gap-3">
+                <h2 class="font-bold text-slate-700 text-sm flex items-center gap-2">
+                    <i class="fa-solid fa-wand-magic-sparkles text-amber-500"></i>
+                    一键预设菜单模板
+                </h2>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2" id="presetContainer">
+                    <!-- Preset Buttons injected here -->
+                </div>
+            </div>
+
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-4 text-xs text-slate-400 border-t border-orange-100 bg-white/50">
+        食轮 &copy; 2026 - 解决你的选择困难症
+    </footer>
+
+    <!-- Result Modal Window -->
+    <div id="resultModal" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-300">
+        <div class="bg-white rounded-3xl p-6 sm:p-8 max-w-sm w-full text-center shadow-2xl transform scale-90 transition-transform duration-300 border border-orange-100 relative overflow-hidden" id="modalCard">
+            
+            <!-- Top Deco -->
+            <div class="absolute -top-12 -left-12 w-28 h-28 bg-orange-100 rounded-full blur-xl pointer-events-none"></div>
+            <div class="absolute -bottom-12 -right-12 w-28 h-28 bg-amber-100 rounded-full blur-xl pointer-events-none"></div>
+
+            <div class="w-16 h-16 bg-gradient-to-tr from-orange-500 to-amber-400 rounded-full mx-auto flex items-center justify-center text-white text-2xl shadow-lg shadow-orange-500/30 mb-4 animate-bounce">
+                <i class="fa-solid fa-bowl-food"></i>
+            </div>
+
+            <span class="text-xs uppercase tracking-wider font-semibold text-orange-500 bg-orange-50 px-3 py-1 rounded-full">决定好啦！</span>
+            
+            <h3 id="resultTitle" class="text-2xl sm:text-3xl font-extrabold text-slate-800 my-3">
+                <!-- Dynamic Food Name -->
+            </h3>
+
+            <p id="resultQuote" class="text-xs sm:text-sm text-slate-500 italic mb-6">
+                <!-- Dynamic Quote -->
+            </p>
+
+            <div class="flex gap-3">
+                <button id="spinAgainBtn" class="flex-1 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-sm transition">
+                    重新抽取
+                </button>
+                <button id="acceptBtn" class="flex-1 py-3 bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-600 hover:to-amber-600 text-white font-semibold rounded-xl text-sm transition shadow-md shadow-orange-500/20">
+                    就吃这个！
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Audio Synthesis using Web Audio API for interactive clicks -->
+    <script>
+        // Web Audio API tick generator
+        class SoundFX {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            }
+
+            playTick() {
+                if (!this.enabled) return;
+                this.init();
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(600, this.ctx.currentTime);
+                    osc.frequency.exponentialRampToValueAtTime(200, this.ctx.currentTime + 0.04);
+                    
+                    gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.04);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start();
+                    osc.stop(this.ctx.currentTime + 0.04);
+                } catch(e) {}
+            }
+
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                try {
+                    const now = this.ctx.currentTime;
+                    const notes = [400, 500, 600, 800];
+                    notes.forEach((freq, idx) => {
+                        const osc = this.ctx.createOscillator();
+                        const gain = this.ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                        gain.gain.setValueAtTime(0.2, now + idx * 0.08);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.25);
+
+                        osc.connect(gain);
+                        gain.connect(this.ctx.destination);
+                        osc.start(now + idx * 0.08);
+                        osc.stop(now + idx * 0.08 + 0.25);
+                    });
+                } catch(e) {}
+            }
+        }
+
+        const soundFX = new SoundFX();
+
+        // Sound Toggle Button Handler
+        const soundToggle = document.getElementById('soundToggle');
+        const soundIcon = document.getElementById('soundIcon');
+        soundToggle.addEventListener('click', () => {
+            soundFX.enabled = !soundFX.enabled;
+            if (soundFX.enabled) {
+                soundIcon.className = 'fa-solid fa-volume-high text-lg';
+                soundToggle.classList.remove('text-slate-400');
+                soundToggle.classList.add('text-orange-600');
+            } else {
+                soundIcon.className = 'fa-solid fa-volume-xmark text-lg';
+                soundToggle.classList.add('text-slate-400');
+                soundToggle.classList.remove('text-orange-600');
+            }
+        });
+    </script>
+
+    <!-- Main Logic Script -->
+    <script>
+        // Preset Food Templates
+        const PRESETS = {
+            '经典中餐': ['火锅', '麻辣烫', '酸菜鱼', '红烧肉', '黄焖鸡米饭', '宫保鸡丁', '兰州拉面', '饺子'],
+            '快餐小吃': ['麦当劳', '肯德基', '汉堡王', '炸鸡', '披萨', '螺蛳粉', '煎饼果子', '关东煮'],
+            '轻食健康': ['沙拉', '三明治', '赛百味', '燕麦碗', '海南鸡饭', '波奇饭', '蒸包粗粮'],
+            '日韩料理': ['寿司', '日式拉面', '鳗鱼饭', '韩式烤肉', '石锅拌饭', '部队锅', '天妇罗'],
+            '夜宵烧烤': ['羊肉串', '烤生蚝', '小龙虾', '炸串', '卤味', '炒粉炒面', '冷锅串串']
+        };
+
+        const DEFAULT_FOODS = PRESETS['经典中餐'];
+
+        const FUNNY_QUOTES = [
+            "就吃这个，不许反悔啦！",
+            "上天安排的最大，今天就决定是它了！",
+            "美味正在召唤你，赶紧出发吧！",
+            "选好了！吃饱了才有力气减脂！",
+            "今天的美味指数是 100% 哟！",
+            "别犹豫了，就是这个最香！"
+        ];
+
+        // Soft vibrant Palette for Canvas Sectors
+        const COLOR_PALETTE = [
+            '#f97316', '#fb923c', '#fbbf24', '#facc15',
+            '#a3e635', '#4ade80', '#34d399', '#38bdf8',
+            '#60a5fa', '#818cf8', '#a78bfa', '#f472b6'
+        ];
+
+        // State variables
+        let foodItems = [];
+        let isSpinning = false;
+        let currentAngle = 0; // Current rotation in radians
+
+        // DOM Elements
+        const canvas = document.getElementById('wheelCanvas');
+        const ctx = canvas.getContext('2d');
+        const spinBtn = document.getElementById('spinBtn');
+        const foodListEl = document.getElementById('foodList');
+        const itemCountEl = document.getElementById('itemCount');
+        const addItemForm = document.getElementById('addItemForm');
+        const newItemInput = document.getElementById('newItemInput');
+        const batchInput = document.getElementById('batchInput');
+        const batchAppendBtn = document.getElementById('batchAppendBtn');
+        const batchReplaceBtn = document.getElementById('batchReplaceBtn');
+        const clearAllBtn = document.getElementById('clearAllBtn');
+        const resetDefaultBtn = document.getElementById('resetDefaultBtn');
+        const presetContainer = document.getElementById('presetContainer');
+
+        // Modal Elements
+        const resultModal = document.getElementById('resultModal');
+        const modalCard = document.getElementById('modalCard');
+        const resultTitle = document.getElementById('resultTitle');
+        const resultQuote = document.getElementById('resultQuote');
+        const spinAgainBtn = document.getElementById('spinAgainBtn');
+        const acceptBtn = document.getElementById('acceptBtn');
+
+        // Initializer
+        function init() {
+            loadFromLocalStorage();
+            renderPresets();
+            renderFoodList();
+            drawWheel();
+
+            // Event Listeners
+            addItemForm.addEventListener('submit', handleAddSingleItem);
+            batchAppendBtn.addEventListener('click', () => handleBatchImport(false));
+            batchReplaceBtn.addEventListener('click', () => handleBatchImport(true));
+            clearAllBtn.addEventListener('click', handleClearAll);
+            resetDefaultBtn.addEventListener('click', handleResetDefault);
+            spinBtn.addEventListener('click', startSpin);
+            spinAgainBtn.addEventListener('click', () => { hideModal(); startSpin(); });
+            acceptBtn.addEventListener('click', hideModal);
+        }
+
+        // LocalStorage Handlers
+        function saveToLocalStorage() {
+            localStorage.setItem('my_food_list', JSON.stringify(foodItems));
+        }
+
+        function loadFromLocalStorage() {
+            const saved = localStorage.getItem('my_food_list');
+            if (saved) {
+                try {
+                    foodItems = JSON.parse(saved);
+                } catch(e) {
+                    foodItems = [...DEFAULT_FOODS];
+                }
+            } else {
+                foodItems = [...DEFAULT_FOODS];
+            }
+        }
+
+        // Render Presets
+        function renderPresets() {
+            presetContainer.innerHTML = '';
+            Object.keys(PRESETS).forEach(key => {
+                const btn = document.createElement('button');
+                btn.className = 'px-3 py-2 bg-orange-50 hover:bg-orange-100 text-orange-700 text-xs font-medium rounded-xl transition border border-orange-200/60 truncate';
+                btn.innerText = key;
+                btn.onclick = () => {
+                    foodItems = [...PRESETS[key]];
+                    updateApp();
+                };
+                presetContainer.appendChild(btn);
+            });
+        }
+
+        // Render Tag List
+        function renderFoodList() {
+            foodListEl.innerHTML = '';
+            itemCountEl.innerText = foodItems.length;
+
+            if (foodItems.length === 0) {
+                foodListEl.innerHTML = `<span class="text-xs text-slate-400 py-2">菜单为空，请添加美食吧~</span>`;
+                return;
+            }
+
+            foodItems.forEach((item, index) => {
+                const tag = document.createElement('div');
+                tag.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 text-xs rounded-full group hover:bg-orange-100 hover:text-orange-700 transition';
+                tag.innerHTML = `
+                    <span>${escapeHtml(item)}</span>
+                    <button onclick="removeFoodItem(${index})" class="text-slate-400 group-hover:text-orange-600 hover:scale-125 transition">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                `;
+                foodListEl.appendChild(tag);
+            });
+        }
+
+        // Sanitize string
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Remove Single Food Item
+        window.removeFoodItem = function(index) {
+            if (isSpinning) return;
+            foodItems.splice(index, 1);
+            updateApp();
+        };
+
+        // Add Single Food Item
+        function handleAddSingleItem(e) {
+            e.preventDefault();
+            if (isSpinning) return;
+            const val = newItemInput.value.trim();
+            if (val) {
+                foodItems.push(val);
+                newItemInput.value = '';
+                updateApp();
+            }
+        }
+
+        // Batch Import
+        function handleBatchImport(isReplace = false) {
+            if (isSpinning) return;
+            const text = batchInput.value.trim();
+            if (!text) return;
+
+            // Split by comma, newlines or spaces
+            const items = text.split(/[\n,，\s]+/).map(s => s.trim()).filter(Boolean);
+            if (items.length > 0) {
+                if (isReplace) {
+                    foodItems = items;
+                } else {
+                    foodItems = foodItems.concat(items);
+                }
+                batchInput.value = '';
+                updateApp();
+            }
+        }
+
+        // Clear All
+        function handleClearAll() {
+            if (isSpinning) return;
+            foodItems = [];
+            updateApp();
+        }
+
+        // Reset to Default
+        function handleResetDefault() {
+            if (isSpinning) return;
+            foodItems = [...DEFAULT_FOODS];
+            updateApp();
+        }
+
+        // Update Application State
+        function updateApp() {
+            saveToLocalStorage();
+            renderFoodList();
+            drawWheel();
+        }
+
+        // Canvas Wheel Drawing Logic
+        function drawWheel() {
+            const numSegments = foodItems.length;
+            const width = canvas.width;
+            const height = canvas.height;
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const radius = width / 2 - 20;
+
+            ctx.clearRect(0, 0, width, height);
+
+            if (numSegments === 0) {
+                // Draw empty wheel
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#f1f5f9';
+                ctx.fill();
+                ctx.lineWidth = 10;
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.stroke();
+
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = 'bold 32px PingFang SC, sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('请先添加美食选项', centerX, centerY);
+                return;
+            }
+
+            const arcSize = (Math.PI * 2) / numSegments;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+            ctx.rotate(currentAngle);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * arcSize;
+                
+                // Segment Color
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.arc(0, 0, radius, angle, angle + arcSize);
+                ctx.fillStyle = COLOR_PALETTE[i % COLOR_PALETTE.length];
+                ctx.fill();
+
+                // Segment Border Lines
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = '#ffffff';
+                ctx.stroke();
+
+                // Text Rendering
+                ctx.save();
+                ctx.fillStyle = '#ffffff';
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+                ctx.shadowBlur = 4;
+                ctx.font = 'bold 30px PingFang SC, sans-serif';
+                ctx.textAlign = 'right';
+                ctx.textBaseline = 'middle';
+
+                // Rotate to sector center angle
+                ctx.rotate(angle + arcSize / 2);
+
+                // Truncate overly long text
+                let text = foodItems[i];
+                if (text.length > 8) {
+                    text = text.substring(0, 7) + '..';
+                }
+
+                ctx.fillText(text, radius - 40, 0);
+                ctx.restore();
+            }
+
+            ctx.restore();
+        }
+
+        // Spin Wheel Logic
+        function startSpin() {
+            if (isSpinning) return;
+            if (foodItems.length < 2) {
+                alert('转盘至少需要 2 个项目才能开始抽取哦！');
+                return;
+            }
+
+            isSpinning = true;
+            spinBtn.disabled = true;
+
+            // Physics calculation for smooth spin deceleration
+            const spinDuration = 4500; // 4.5 seconds
+            const startTimestamp = performance.now();
+            
+            // Random target revolutions (between 5 and 8 full turns)
+            const extraTurns = 5 + Math.random() * 3;
+            const targetRotation = currentAngle + (extraTurns * Math.PI * 2);
+
+            let lastSectorIndex = -1;
+
+            function animateSpin(now) {
+                const elapsed = now - startTimestamp;
+                const progress = Math.min(elapsed / spinDuration, 1);
+
+                // Cubic Ease Out function for smooth deceleration
+                const easeOut = 1 - Math.pow(1 - progress, 3);
+                
+                currentAngle = currentAngle + (targetRotation - currentAngle) * (easeOut - (animateSpin.lastEaseOut || 0));
+                animateSpin.lastEaseOut = easeOut;
+
+                // Sound Effect calculation: tick when sector line passes top indicator
+                const numSegments = foodItems.length;
+                const arcSize = (Math.PI * 2) / numSegments;
+                
+                // Top Indicator points to 270 deg / -90 deg (1.5 * PI in canvas)
+                const normalizedAngle = (1.5 * Math.PI - (currentAngle % (Math.PI * 2)) + Math.PI * 2) % (Math.PI * 2);
+                const currentSectorIndex = Math.floor(normalizedAngle / arcSize);
+
+                if (currentSectorIndex !== lastSectorIndex) {
+                    soundFX.playTick();
+                    lastSectorIndex = currentSectorIndex;
+                }
+
+                drawWheel();
+
+                if (progress < 1) {
+                    requestAnimationFrame(animateSpin);
+                } else {
+                    animateSpin.lastEaseOut = 0;
+                    isSpinning = false;
+                    spinBtn.disabled = false;
+                    
+                    // Final Result Determination
+                    const winnerIndex = currentSectorIndex;
+                    showResult(foodItems[winnerIndex]);
+                }
+            }
+
+            requestAnimationFrame(animateSpin);
+        }
+
+        // Result Modal & Celebration
+        function showResult(selectedFood) {
+            soundFX.playWin();
+
+            // Trigger Confetti Effect
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
+            resultTitle.innerText = selectedFood;
+            const randomQuote = FUNNY_QUOTES[Math.floor(Math.random() * FUNNY_QUOTES.length)];
+            resultQuote.innerText = `"${randomQuote}"`;
+
+            // Modal Display Animation
+            resultModal.classList.remove('opacity-0', 'pointer-events-none');
+            modalCard.classList.remove('scale-90');
+            modalCard.classList.add('scale-100');
+        }
+
+        function hideModal() {
+            resultModal.classList.add('opacity-0', 'pointer-events-none');
+            modalCard.classList.remove('scale-100');
+            modalCard.classList.add('scale-90');
+        }
+
+        // Initialize on DOM Ready
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
